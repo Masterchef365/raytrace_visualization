@@ -1,0 +1,10 @@
+[package]
+name = "visible_raytrace"
+version = "0.1.0"
+authors = ["Masterchef365 <duncan.freeman1@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+nalgebra = "0.21"
+kiss3d = "0.24"
+rand = "0.7"
