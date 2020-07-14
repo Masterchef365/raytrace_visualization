@@ -3,46 +3,43 @@ use rand::distributions::{Distribution, Uniform};
 
 type Line = (Point3<f32>, Point3<f32>);
 
-struct PathLine {
-    dist_from_begin: f32,
+struct PathEntry {
+    position: f32,
     length: f32,
 }
 
 struct Path {
     points: Vec<Point3<f32>>,
-    lines: Vec<PathLine>,
-    total_length: f32,
+    lines: Vec<PathEntry>,
+    length: f32,
 }
 
 impl Path {
     pub fn new(points: Vec<Point3<f32>>) -> Self {
         let mut lines = Vec::with_capacity(points.len() - 1);
-        let mut dist_from_begin = 0.0;
+        let mut position = 0.0;
 
-        for pair in points.windows(2) {
-            let length = (pair[1] - pair[0]).magnitude();
-            lines.push(PathLine {
-                dist_from_begin,
-                length,
-            });
-            dist_from_begin += length;
+        for line in points.windows(2) {
+            let length = (line[1] - line[0]).magnitude();
+            lines.push(PathEntry { position, length });
+            position += length;
         }
 
         Self {
             points,
             lines,
-            total_length: dist_from_begin,
+            length: position,
         }
     }
 
     pub fn lines_between(&self, begin: f32, end: f32) -> Option<Vec<Line>> {
         assert!(begin < end);
 
-        let begin_idx = self.get_index(begin)?;
-        let end_idx = self.get_index(end)?;
+        let begin_idx = self.nearest_line_idx(begin)?;
+        let end_idx = self.nearest_line_idx(end)?;
 
-        let begin_pos = self.point_at_dist(begin)?;
-        let end_pos = self.point_at_dist(end)?;
+        let begin_pos = self.point_at_position(begin)?;
+        let end_pos = self.point_at_position(end)?;
 
         if begin_idx == end_idx {
             Some(vec![(begin_pos, end_pos)])
@@ -57,44 +54,49 @@ impl Path {
         }
     }
 
-    pub fn length(&self) -> f32 {
-        self.total_length
-    }
-
-    pub fn point_at_dist(&self, distance: f32) -> Option<Point3<f32>> {
-        let index = self.get_index(distance)?;
-        let line = &self.lines[index];
-        let off = (distance - line.dist_from_begin) / line.length;
-        let pt = self.points[index]
+    pub fn point_at_position(&self, position: f32) -> Option<Point3<f32>> {
+        let line_idx = self.nearest_line_idx(position)?;
+        let line = &self.lines[line_idx];
+        let off = (position - line.position) / line.length;
+        let pt = self.points[line_idx]
             .coords
-            .lerp(&self.points[index + 1].coords, off);
+            .lerp(&self.points[line_idx + 1].coords, off);
         Some(pt.into())
     }
 
     /// Get the index of the point that begins the line to this index. Returns None if there is no
-    /// corresponding line.
-    pub fn get_index(&self, distance: f32) -> Option<usize> {
-        if distance > self.total_length {
+    /// corresponding line. It's a binary search underneath, so it should be O(log n)
+    pub fn nearest_line_idx(&self, position: f32) -> Option<usize> {
+        if position > self.length {
             return None;
         }
 
         let mut a = 0;
         let mut b = self.points.len() - 1;
-        let mut current = (a + b) / 2;
+        let mut current_idx;
         loop {
-            let current_line = &self.lines[current];
-            let begin = current_line.dist_from_begin;
+            current_idx = (a + b) / 2;
+
+            let current_line = &self.lines[current_idx];
+            let begin = current_line.position;
             let end = begin + current_line.length;
-            if distance > end {
-                a = current + 1;
-                current = (a + b) / 2;
-            } else if distance < begin {
-                b = current;
-                current = (a + b) / 2;
+
+            if position > end {
+                a = current_idx + 1;
+            } else if position < begin {
+                b = current_idx;
             } else {
-                break Some(current);
+                break Some(current_idx);
             }
         }
+    }
+
+    pub fn length(&self) -> f32 {
+        self.length
+    }
+
+    pub fn points(&self) -> &[Point3<f32>] {
+        &self.points
     }
 }
 
@@ -104,7 +106,7 @@ fn main() {
     let step = 0.1;
     let delta = Uniform::new(-step, step);
 
-    let steps = 300;
+    let steps = 3000;
     let mut path = Vec::with_capacity(steps);
     let mut position = Point3::origin();
     for _ in 0..steps {
@@ -120,13 +122,13 @@ fn main() {
 
     let mut begin = 0.0;
     while window.render() {
-        begin += 0.01;
+        begin += 0.1;
 
         if begin > path.length() {
             begin = 0.0;
         }
 
-        for pair in path.points.windows(2) {
+        for pair in path.points().windows(2) {
             window.draw_line(&pair[0], &pair[1], &Point3::new(0.3, 0.3, 0.3));
         }
 
