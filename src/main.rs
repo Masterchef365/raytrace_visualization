@@ -3,7 +3,6 @@ use nalgebra::{Matrix4, Point3, Vector3, Vector4};
 use rand::distributions::{Distribution, Uniform};
 use visible_raytrace::{camera::Camera, plane::Plane};
 
-
 fn draw_plane(window: &mut Window, plane: &Plane, size: f32, color: &Point3<f32>) {
     let cross_x = plane.normal.cross(&Vector3::new(0.0, 1.0, 0.0)).normalize() * size;
     let cross_y = plane.normal.cross(&cross_x).normalize() * size;
@@ -57,22 +56,24 @@ fn main() {
         far: 1000.0,
     };
 
-    let plane = Plane {
-        origin: Point3::new(0.0, 0.0, 5.0),
-        normal: Vector3::new(0.3, 1.0, -1.0),
-    };
-
+    let mut t = 0.0f32;
     while window.render() {
+        let plane = Plane {
+            origin: Point3::new(0.0, 1.0, 5.0),
+            normal: Vector3::new(0.3, 1.0, t.cos()),
+        };
         draw_camera(&mut window, &cam, 0.1, &white);
-        draw_plane(&mut window, &plane, 1.0, &white);
+        draw_plane(&mut window, &plane, 5.0, &white);
         for y in 1..cam.height {
             for x in 1..cam.width {
                 let ray = cam.ray(x, y);
-                let intersect = plane.intersect(&ray).unwrap();
-                window.draw_line(&intersect, &cam.eye, &green);
-                let away = intersect + reflect(&ray.direction, &plane.normal);
-                window.draw_line(&intersect, &away, &red);
+                if let Some(intersect) = plane.intersect(&ray) {
+                    window.draw_line(&intersect, &cam.eye, &green);
+                    let away = intersect + reflect(&ray.direction, &plane.normal);
+                    window.draw_line(&intersect, &away, &red);
+                }
             }
         }
+        t += 0.003
     }
 }

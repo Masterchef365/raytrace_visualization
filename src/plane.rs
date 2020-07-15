@@ -21,17 +21,15 @@ impl Plane {
     }
 
     pub fn intersect(&self, ray: &Ray) -> Option<Point3<f32>> {
-        let denom = (ray.origin.coords + self.origin.coords).dot(&self.normal);
-        let numer = ray.direction.dot(&self.normal);
-        let l = denom / numer;
-        Some(ray.origin + ray.direction * l)
-        /*
-        let above = (ray.origin - self.origin).dot(&ray.direction);
+        let above = (ray.origin - self.origin).dot(&self.normal) > 0.0;
         let with = ray.direction.dot(&self.normal) > 0.0;
         if above != with {
+            let denom = (ray.origin.coords + self.origin.coords).dot(&self.normal);
+            let numer = ray.direction.dot(&self.normal);
+            let l = denom / numer;
+            Some(ray.origin + ray.direction * l)
         } else {
             None
         }
-                */
     }
 }
