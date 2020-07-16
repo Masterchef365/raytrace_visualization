@@ -6,20 +6,22 @@ pub struct RayAnimation {
     path: Path,
     line_len: f32,
     beginning: f32,
+    max: f32,
 }
 
 impl RayAnimation {
-    pub fn new(path: Path, line_len: f32) -> Self {
+    pub fn new(path: Path, line_len: f32, max: f32) -> Self {
         RayAnimation {
             path,
             line_len,
             beginning: 0.0,
+            max
         }
     }
 
     /// Return false when finished
     pub fn step(&mut self, distance: f32) -> bool {
-        if self.beginning >= self.path.length() + self.line_len {
+        if self.beginning >= self.path.length() + self.line_len || self.beginning >= self.max {
             false
         } else {
             self.beginning += distance;

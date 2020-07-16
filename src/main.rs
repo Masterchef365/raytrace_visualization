@@ -82,7 +82,7 @@ fn main() {
     let mut scene = engine::Scene::new();
 
     let sphere = Sphere {
-        center: Point3::new(0.0, -1.0, 3.0),
+        center: Point3::new(0.0, 2.0, 3.0),
         radius: 1.0,
     };
 
@@ -96,7 +96,7 @@ fn main() {
 
     let mut animations = engine::trace_scene(&scene, &cam, 20)
         .into_iter()
-        .map(|path| RayAnimation::new(path, 0.5))
+        .map(|path| RayAnimation::new(path, 0.5, 10.0))
         .collect::<Vec<_>>();
 
     while window.render() {
