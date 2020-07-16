@@ -4,3 +4,4 @@ pub mod path;
 pub mod ray;
 pub mod animation;
 pub mod sphere;
+pub mod engine;

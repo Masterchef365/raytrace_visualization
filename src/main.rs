@@ -1,6 +1,5 @@
 use kiss3d::window::Window;
-use nalgebra::{Matrix4, Point3, Vector3, Vector4};
-use rand::distributions::{Distribution, Uniform};
+use nalgebra::{Point3, Vector3};
 use visible_raytrace::{animation::RayAnimation, camera::Camera, path::Path, plane::Plane, sphere::Sphere};
 
 fn draw_sphere(window: &mut Window, sphere: &Sphere, rows: u32, cols: u32, color: &Point3<f32>) {
@@ -67,32 +66,20 @@ fn draw_camera(window: &mut Window, camera: &Camera, size: f32, color: &Point3<f
     window.draw_line(&camera.eye, &bl, color);
 }
 
-fn reflect(ray: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
-    ray - 2.0 * normal * normal.dot(&ray)
-}
-
 fn main() {
     let mut window = Window::new("Slow light ray trace");
     let white = Point3::new(1.0, 1.0, 1.0);
     let green = Point3::new(0.4, 1.0, 0.0);
-    //let red = Point3::new(1.0, 0.0, 0.0);
 
     let cam = Camera {
-        width: 10,
-        height: 10,
+        width: 80,
+        height: 80,
         eye: Point3::origin(),
         at: Point3::new(0.0, 0.0, -10.0),
         fov: 0.3,
         near: 0.1,
         far: 1000.0,
     };
-
-    /*
-    let plane = Plane {
-        origin: Point3::new(0.0, 1.0, 5.0),
-        normal: Vector3::new(0.3, 1.0, 1.0),
-    };
-    */
 
     let sphere = Sphere {
         center: Point3::new(0.0, 0.0, 5.0),
@@ -104,13 +91,11 @@ fn main() {
     for y in 1..cam.height {
         for x in 1..cam.width {
             let ray = cam.ray(x, y);
-            //if let Some(intersect) = plane.intersect(&ray) {
             if let Some(intersect) = sphere.intersect(&ray) {
                 window.draw_line(&intersect, &cam.eye, &green);
-                //let away = intersect + reflect(&ray.direction, &plane.normal);
-                let away = intersect + reflect(&ray.direction, &sphere.normal(&intersect));
-                let path = Path::new(vec![cam.eye, intersect, away]);
-                let anim = RayAnimation::new(path, 3.0);
+                let away = ray.reflect(&intersect, &sphere.normal(&intersect));
+                let path = Path::new(vec![cam.eye, intersect, away.origin + away.direction]);
+                let anim = RayAnimation::new(path, 0.5);
                 animations.push(anim);
             }
         }
@@ -118,8 +103,7 @@ fn main() {
 
     while window.render() {
         draw_camera(&mut window, &cam, 0.1, &white);
-        draw_sphere(&mut window, &sphere, 10, 34, &white);
-        //draw_plane(&mut window, &plane, 5.0, &white);
+        draw_sphere(&mut window, &sphere, 20, 68, &white);
         let mut reset = true;
         for anim in &mut animations {
             anim.draw(&mut window, &green);
