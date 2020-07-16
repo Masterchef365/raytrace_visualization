@@ -33,7 +33,9 @@ impl Path {
     }
 
     pub fn lines_between(&self, begin: f32, end: f32) -> Option<Vec<Line>> {
-        assert!(begin < end);
+        if begin > end {
+            return None;
+        }
 
         let begin_idx = self.nearest_line_idx(begin)?;
         let end_idx = self.nearest_line_idx(end)?;

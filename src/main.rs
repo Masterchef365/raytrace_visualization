@@ -1,7 +1,7 @@
 use kiss3d::window::Window;
 use nalgebra::{Matrix4, Point3, Vector3, Vector4};
 use rand::distributions::{Distribution, Uniform};
-use visible_raytrace::{camera::Camera, plane::Plane};
+use visible_raytrace::{animation::RayAnimation, camera::Camera, path::Path, plane::Plane};
 
 fn draw_plane(window: &mut Window, plane: &Plane, size: f32, color: &Point3<f32>) {
     let cross_x = plane.normal.cross(&Vector3::new(0.0, 1.0, 0.0)).normalize() * size;
@@ -43,12 +43,12 @@ fn reflect(ray: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
 fn main() {
     let mut window = Window::new("Slow light ray trace");
     let white = Point3::new(1.0, 1.0, 1.0);
-    let green = Point3::new(0.0, 1.0, 0.0);
-    let red = Point3::new(1.0, 0.0, 0.0);
+    let green = Point3::new(0.4, 1.0, 0.0);
+    //let red = Point3::new(1.0, 0.0, 0.0);
 
     let cam = Camera {
-        width: 6,
-        height: 6,
+        width: 30,
+        height: 30,
         eye: Point3::origin(),
         at: Point3::new(0.0, 0.0, -10.0),
         fov: 0.3,
@@ -56,24 +56,32 @@ fn main() {
         far: 1000.0,
     };
 
-    let mut t = 0.0f32;
-    while window.render() {
-        let plane = Plane {
-            origin: Point3::new(0.0, 1.0, 5.0),
-            normal: Vector3::new(0.3, 1.0, t.cos()),
-        };
-        draw_camera(&mut window, &cam, 0.1, &white);
-        draw_plane(&mut window, &plane, 5.0, &white);
-        for y in 1..cam.height {
-            for x in 1..cam.width {
-                let ray = cam.ray(x, y);
-                if let Some(intersect) = plane.intersect(&ray) {
-                    window.draw_line(&intersect, &cam.eye, &green);
-                    let away = intersect + reflect(&ray.direction, &plane.normal);
-                    window.draw_line(&intersect, &away, &red);
-                }
+    let plane = Plane {
+        origin: Point3::new(0.0, 1.0, 5.0),
+        normal: Vector3::new(0.3, 1.0, 1.0),
+    };
+
+    let mut animations = Vec::new();
+
+    for y in 1..cam.height {
+        for x in 1..cam.width {
+            let ray = cam.ray(x, y);
+            if let Some(intersect) = plane.intersect(&ray) {
+                window.draw_line(&intersect, &cam.eye, &green);
+                let away = intersect + reflect(&ray.direction, &plane.normal);
+                let path = Path::new(vec![cam.eye, intersect, away]);
+                let anim = RayAnimation::new(path, 3.0);
+                animations.push(anim);
             }
         }
-        t += 0.003
+    }
+
+    while window.render() {
+        draw_camera(&mut window, &cam, 0.1, &white);
+        draw_plane(&mut window, &plane, 5.0, &white);
+        for anim in &mut animations {
+            anim.draw(&mut window, &green);
+            anim.step(0.1);
+        }
     }
 }
