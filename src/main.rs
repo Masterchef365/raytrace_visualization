@@ -79,9 +79,18 @@ fn main() {
     while window.render() {
         draw_camera(&mut window, &cam, 0.1, &white);
         draw_plane(&mut window, &plane, 5.0, &white);
+        let mut reset = true;
         for anim in &mut animations {
             anim.draw(&mut window, &green);
-            anim.step(0.1);
+            if anim.step(0.1) {
+                reset = false;
+            }
+        }
+
+        if reset {
+            for anim in &mut animations {
+                anim.reset();
+            }
         }
     }
 }
