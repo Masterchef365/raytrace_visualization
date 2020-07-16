@@ -1,7 +1,38 @@
 use kiss3d::window::Window;
 use nalgebra::{Matrix4, Point3, Vector3, Vector4};
 use rand::distributions::{Distribution, Uniform};
-use visible_raytrace::{animation::RayAnimation, camera::Camera, path::Path, plane::Plane};
+use visible_raytrace::{animation::RayAnimation, camera::Camera, path::Path, plane::Plane, sphere::Sphere};
+
+fn draw_sphere(window: &mut Window, sphere: &Sphere, rows: u32, cols: u32, color: &Point3<f32>) {
+    let pos = |row: u32, col: u32| {
+        let row = row as f32 * std::f32::consts::PI / rows as f32;
+        let row = row - (std::f32::consts::PI / 2.0);
+        let col = col as f32 * (std::f32::consts::PI * 2.0) / cols as f32;
+        sphere.center + Vector3::new(
+            row.cos() * col.cos(),
+            row.sin(),
+            row.cos() * col.sin(),
+        )
+    };
+
+    for row in 0..rows {
+        let mut last = pos(row, 0);
+        for col in 1..=cols {
+            let cur = pos(row, col);
+            window.draw_line(&cur, &last, color);
+            last = cur;
+        }
+    }
+
+    for col in 0..cols {
+        let mut last = pos(0, col);
+        for row in 1..=rows {
+            let cur = pos(row, col);
+            window.draw_line(&cur, &last, color);
+            last = cur;
+        }
+    }
+}
 
 fn draw_plane(window: &mut Window, plane: &Plane, size: f32, color: &Point3<f32>) {
     let cross_x = plane.normal.cross(&Vector3::new(0.0, 1.0, 0.0)).normalize() * size;
@@ -47,8 +78,8 @@ fn main() {
     //let red = Point3::new(1.0, 0.0, 0.0);
 
     let cam = Camera {
-        width: 30,
-        height: 30,
+        width: 10,
+        height: 10,
         eye: Point3::origin(),
         at: Point3::new(0.0, 0.0, -10.0),
         fov: 0.3,
@@ -56,9 +87,16 @@ fn main() {
         far: 1000.0,
     };
 
+    /*
     let plane = Plane {
         origin: Point3::new(0.0, 1.0, 5.0),
         normal: Vector3::new(0.3, 1.0, 1.0),
+    };
+    */
+
+    let sphere = Sphere {
+        center: Point3::new(0.0, 0.0, 5.0),
+        radius: 1.0,
     };
 
     let mut animations = Vec::new();
@@ -66,9 +104,11 @@ fn main() {
     for y in 1..cam.height {
         for x in 1..cam.width {
             let ray = cam.ray(x, y);
-            if let Some(intersect) = plane.intersect(&ray) {
+            //if let Some(intersect) = plane.intersect(&ray) {
+            if let Some(intersect) = sphere.intersect(&ray) {
                 window.draw_line(&intersect, &cam.eye, &green);
-                let away = intersect + reflect(&ray.direction, &plane.normal);
+                //let away = intersect + reflect(&ray.direction, &plane.normal);
+                let away = intersect + reflect(&ray.direction, &sphere.normal(&intersect));
                 let path = Path::new(vec![cam.eye, intersect, away]);
                 let anim = RayAnimation::new(path, 3.0);
                 animations.push(anim);
@@ -78,11 +118,12 @@ fn main() {
 
     while window.render() {
         draw_camera(&mut window, &cam, 0.1, &white);
-        draw_plane(&mut window, &plane, 5.0, &white);
+        draw_sphere(&mut window, &sphere, 10, 34, &white);
+        //draw_plane(&mut window, &plane, 5.0, &white);
         let mut reset = true;
         for anim in &mut animations {
             anim.draw(&mut window, &green);
-            if anim.step(0.1) {
+            if anim.step(0.01) {
                 reset = false;
             }
         }
