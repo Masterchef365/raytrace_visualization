@@ -1,6 +1,6 @@
+use crate::engine::Raycast;
 use crate::ray::Ray;
 use nalgebra::{Point3, Vector3};
-use crate::engine::Raycast;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Plane {
@@ -21,13 +21,16 @@ impl Plane {
         self.normal.dot(&(*pt - self.origin))
     }
 
+    pub fn normal(&self) -> Vector3<f32> {
+        self.normal.normalize()
+    }
+
     pub fn intersect(&self, ray: &Ray) -> Option<Point3<f32>> {
-        let above = (ray.origin - self.origin).dot(&self.normal) > 0.0;
+        let diff = ray.origin - self.origin;
+        let above = diff.dot(&self.normal) > 0.0;
         let with = ray.direction.dot(&self.normal) > 0.0;
-        if above != with {
-            let denom = (ray.origin.coords + self.origin.coords).dot(&self.normal);
-            let numer = ray.direction.dot(&self.normal);
-            let l = denom / numer;
+        if above && !with {
+            let l = -self.normal.dot(&diff) / (self.normal.dot(&ray.direction));
             Some(ray.origin + ray.direction * l)
         } else {
             None
@@ -38,6 +41,6 @@ impl Plane {
 impl Raycast for Plane {
     fn raycast(&self, ray: &Ray) -> Option<Ray> {
         let intersection = self.intersect(ray)?;
-        Some(ray.reflect(&intersection, &self.normal))
+        Some(ray.reflect(&intersection, &self.normal()))
     }
 }

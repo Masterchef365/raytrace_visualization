@@ -82,13 +82,19 @@ fn main() {
     let mut scene = engine::Scene::new();
 
     let sphere = Sphere {
-        center: Point3::new(0.0, -1.0, 5.0),
+        center: Point3::new(0.0, -1.0, 3.0),
         radius: 1.0,
     };
 
-    scene.push(Box::new(sphere.clone()));
+    let plane = Plane {
+        origin: Point3::new(0.0, 0.0, 5.0),
+        normal: Vector3::new(0.0, 1.0, -2.5),
+    };
 
-    let mut animations = engine::trace_scene(&scene, &cam, 10)
+    scene.push(Box::new(sphere.clone()));
+    scene.push(Box::new(plane.clone()));
+
+    let mut animations = engine::trace_scene(&scene, &cam, 20)
         .into_iter()
         .map(|path| RayAnimation::new(path, 0.5))
         .collect::<Vec<_>>();
@@ -96,6 +102,7 @@ fn main() {
     while window.render() {
         draw_camera(&mut window, &cam, 0.1, &white);
         draw_sphere(&mut window, &sphere, 20, 68, &white);
+        draw_plane(&mut window, &plane, 5.0, &white);
         let mut reset = true;
         for anim in &mut animations {
             anim.draw(&mut window, &green);
