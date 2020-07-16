@@ -2,12 +2,14 @@ use nalgebra::Point3;
 
 pub type Line = (Point3<f32>, Point3<f32>);
 
+#[derive(Debug, Clone)]
 struct PathEntry {
     position: f32,
     length: f32,
 }
 
 /// Implements odometry-based position queries with O(n) memory and O(log n) query time.
+#[derive(Debug, Clone)]
 pub struct Path {
     points: Vec<Point3<f32>>,
     lines: Vec<PathEntry>,
@@ -69,7 +71,7 @@ impl Path {
     /// Get the index of the point that begins the line to this index. Returns None if there is no
     /// corresponding line. It's a binary search underneath, so it should be O(log n)
     pub fn nearest_line_idx(&self, position: f32) -> Option<usize> {
-        if position > self.length {
+        if position > self.length || self.lines.is_empty() {
             return None;
         }
 

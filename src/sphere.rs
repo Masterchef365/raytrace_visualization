@@ -1,6 +1,8 @@
+use crate::engine::Raycast;
 use crate::ray::Ray;
-use nalgebra::{Matrix4, Point3, Vector3, Vector4};
+use nalgebra::{Point3, Vector3};
 
+#[derive(Clone, Copy, Debug)]
 pub struct Sphere {
     pub center: Point3<f32>,
     pub radius: f32,
@@ -9,6 +11,12 @@ pub struct Sphere {
 impl Sphere {
     /// Returns the closest intersection point, if any
     pub fn intersect(&self, ray: &Ray) -> Option<Point3<f32>> {
+        // Gaurd against reversed rays
+        if (self.center - ray.origin).dot(&ray.direction) < 0.0 {
+            return None;
+        }
+
+        // Calculate the intersections
         let o = ray.origin - self.center;
         let d = ray.direction;
         let (a, b) = solve_quadratic(
@@ -21,6 +29,7 @@ impl Sphere {
         let a = along(a);
         let b = along(b);
 
+        // Choose the closest intersection
         if (a - ray.origin).magnitude_squared() < (b - ray.origin).magnitude_squared() {
             Some(a)
         } else {
@@ -31,6 +40,13 @@ impl Sphere {
     /// The normal at this point. Doesn't have to be on the sphere, necessarily.
     pub fn normal(&self, pt: &Point3<f32>) -> Vector3<f32> {
         (self.center - pt).normalize()
+    }
+}
+
+impl Raycast for Sphere {
+    fn raycast(&self, ray: &Ray) -> Option<Ray> {
+        self.intersect(ray)
+            .map(|p| ray.reflect(&p, &self.normal(&p)))
     }
 }
 

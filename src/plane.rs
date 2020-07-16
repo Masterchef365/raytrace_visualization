@@ -1,5 +1,6 @@
 use crate::ray::Ray;
 use nalgebra::{Point3, Vector3};
+use crate::engine::Raycast;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Plane {
@@ -31,5 +32,12 @@ impl Plane {
         } else {
             None
         }
+    }
+}
+
+impl Raycast for Plane {
+    fn raycast(&self, ray: &Ray) -> Option<Ray> {
+        let intersection = self.intersect(ray)?;
+        Some(ray.reflect(&intersection, &self.normal))
     }
 }

@@ -1,17 +1,15 @@
 use kiss3d::window::Window;
 use nalgebra::{Point3, Vector3};
-use visible_raytrace::{animation::RayAnimation, camera::Camera, path::Path, plane::Plane, sphere::Sphere};
+use visible_raytrace::{
+    animation::RayAnimation, camera::Camera, engine, path::Path, plane::Plane, sphere::Sphere,
+};
 
 fn draw_sphere(window: &mut Window, sphere: &Sphere, rows: u32, cols: u32, color: &Point3<f32>) {
     let pos = |row: u32, col: u32| {
         let row = row as f32 * std::f32::consts::PI / rows as f32;
         let row = row - (std::f32::consts::PI / 2.0);
         let col = col as f32 * (std::f32::consts::PI * 2.0) / cols as f32;
-        sphere.center + Vector3::new(
-            row.cos() * col.cos(),
-            row.sin(),
-            row.cos() * col.sin(),
-        )
+        sphere.center + Vector3::new(row.cos() * col.cos(), row.sin(), row.cos() * col.sin())
     };
 
     for row in 0..rows {
@@ -81,25 +79,19 @@ fn main() {
         far: 1000.0,
     };
 
+    let mut scene = engine::Scene::new();
+
     let sphere = Sphere {
-        center: Point3::new(0.0, 0.0, 5.0),
+        center: Point3::new(0.0, -1.0, 5.0),
         radius: 1.0,
     };
 
-    let mut animations = Vec::new();
+    scene.push(Box::new(sphere.clone()));
 
-    for y in 1..cam.height {
-        for x in 1..cam.width {
-            let ray = cam.ray(x, y);
-            if let Some(intersect) = sphere.intersect(&ray) {
-                window.draw_line(&intersect, &cam.eye, &green);
-                let away = ray.reflect(&intersect, &sphere.normal(&intersect));
-                let path = Path::new(vec![cam.eye, intersect, away.origin + away.direction]);
-                let anim = RayAnimation::new(path, 0.5);
-                animations.push(anim);
-            }
-        }
-    }
+    let mut animations = engine::trace_scene(&scene, &cam, 10)
+        .into_iter()
+        .map(|path| RayAnimation::new(path, 0.5))
+        .collect::<Vec<_>>();
 
     while window.render() {
         draw_camera(&mut window, &cam, 0.1, &white);
